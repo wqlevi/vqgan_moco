@@ -70,11 +70,11 @@ The main idea behind codebook and quantization is to convert the continuous late
 The training involves, sending the batch of images through the encoder, quantizing the embeddings and then sending the quantized embeddings through the decoder to reconstruct the image. The loss function is computed as follows:
 
 
-$$
+$`
 \begin{aligned}
-\mathcal{L}_{\mathrm{VQ}}(E, G, \mathcal{Z})=\|x-\hat{x}\|^{2} &+\left\|\operatorname{sg}[E(x)]-z_{\mathbf{q}}\right\|_{2}^{2}+\left\|\operatorname{sg}\left[z_{\mathbf{q}}\right]-E(x)\right\|_{2}^{2} .
+\mathcal{L}_{\mathrm{VQ}}(E, G, \mathcal{Z})=\|x-\hat{x}\|^{2} &+\left\|\text{sg}[E(x)]-z_{\mathbf{q}}\right\|_{2}^{2}+\left\|\text{sg}\left[z_{\mathbf{q}}\right]-E(x)\right\|_{2}^{2} .
 \end{aligned}
-$$
+`$
 
 The above equation represents the sum of reconstruction loss, alignment and commitment loss
 
@@ -86,7 +86,7 @@ The above equation represents the sum of reconstruction loss, alignment and comm
 
 
     The reconstruction loss is a sum of the l1 loss and perceptual loss.  
-    $$\text { L1 Loss }=\sum_{i=1}^{n}\left|y_{\text {true }}-y_{\text {predicted }}\right|$$
+    $`\text { L1 Loss }=\sum_{i=1}^{n}\left|y_{\text {true }}-y_{\text {predicted }}\right|`$
 
     The perceptual is calculated the l2 distance between the last layer output of the generated vs original image from pre-trained model like VGG, etc. 
 
@@ -96,9 +96,9 @@ The above equation represents the sum of reconstruction loss, alignment and comm
   <img align="right" src="./utils/assets/patchgan_disc.png" width="250"/>
 
 
-$$
+$`
 \mathcal{L}_{\mathrm{GAN}}(\{E, G, \mathcal{Z}\}, D)=[\log D(x)+\log (1-D(\hat{x}))]
-$$
+`$
 
 The above loss is for the discriminator which takes in real and generated images and learns to classify which one's real or face. the **GAN** in VQGAN comes from here :) 
 
@@ -106,19 +106,19 @@ The discrimination here is a bit different than conventional discriminators in t
 
 ---
 
-$$
+$`
 \lambda=\frac{\nabla_{G_{L}}\left[\mathcal{L}_{\mathrm{rec}}\right]}{\nabla_{G_{L}}\left[\mathcal{L}_{\mathrm{GAN}}\right]+\delta}
-$$
+`$
 
 We calculate lambda as the ratio between the reconstruction loss and the GAN loss, both with respect to the gradient of the last layer of the decoder. `calculate_lambda` in [`vqgan.py`](vqgan/vqgan.py) 
 
 The final loss then becomes  - 
 
-$$
+$`
 \begin{aligned}
 \mathcal{Q}^{*}=\underset{E, G, \mathcal{Z}}{\arg \min } \max _{D} \mathbb{E}_{x \sim p(x)}\left[\mathcal{L}_{\mathrm{VQ}}(E, G, \mathcal{Z})+\lambda \mathcal{L}_{\mathrm{GAN}}(\{E, G, \mathcal{Z}\}, D)\right]
 \end{aligned}
-$$
+`$
 
 which is the combination of the reconstruction loss, alignment loss and commitment loss and discriminator loss multiplied with `lambda`. 
 
