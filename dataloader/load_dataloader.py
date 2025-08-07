@@ -1,12 +1,12 @@
 # Importing Libraries
 import torch
 
-from dataloader import load_mnist, load_cifar10
+from dataloader import load_mnist, load_cifar10, load_moco
 
 
 def load_dataloader(
     name: str = "mnist",
-    batch_size: int = 2,
+    batch_size: int = 16,
     image_size: int = 256,
     num_workers: int = 4,
     save_path: str = "data",
@@ -38,4 +38,11 @@ def load_dataloader(
             image_size=image_size,
             num_workers=num_workers,
             save_path=save_path,
+        )
+
+    elif name == "moco":
+        return load_moco(
+            batch_size=batch_size,
+            image_size=image_size,
+            num_workers=num_workers,
         )

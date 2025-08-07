@@ -76,7 +76,7 @@ class VQGANTransformer(nn.Module):
 
     def forward(self, x:torch.Tensor) -> torch.Tensor:
         """
-        transformer model forward pass 
+        transformer model forward pass to predict masked indices 
 
         Args:
             x (torch.tensor): Batch of images

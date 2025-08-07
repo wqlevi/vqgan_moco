@@ -3,7 +3,6 @@ import os
 
 import torch
 import torchvision
-from aim import Run
 from utils import reproducibility
 
 from trainer import TransformerTrainer, VQGANTrainer
@@ -14,7 +13,8 @@ class Trainer:
         self,
         vqgan: torch.nn.Module,
         transformer: torch.nn.Module,
-        run: Run,
+        run,
+        name: str,
         config: dict,
         experiment_dir: str = "experiments",
         seed: int = 42,
@@ -25,6 +25,7 @@ class Trainer:
         self.transformer = transformer
 
         self.run = run
+        self.name = name
         self.config = config
         self.experiment_dir = experiment_dir
         self.seed = seed
@@ -33,6 +34,9 @@ class Trainer:
         print(f"[INFO] Setting seed to {seed}")
         reproducibility(seed)
 
+        os.makedirs(
+            os.path.join(experiment_dir:=os.path.join(self.experiment_dir, self.name), "checkpoints"), exist_ok=True
+        )
         print(f"[INFO] Results will be saved in {experiment_dir}")
         self.experiment_dir = experiment_dir
 
@@ -80,7 +84,7 @@ class Trainer:
         self.transformer_trainer.train(dataloader=dataloader, epochs=epochs)
 
         self.transformer.save_checkpoint(
-            os.path.join(self.experiment_dir, "checkpoints", "transformer.pt")
+            os.path.join(self.experiment_dir,  "checkpoints", "transformer.pt")
         )
 
     def generate_images(self, n_images: int = 5):

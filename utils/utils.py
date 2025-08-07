@@ -98,3 +98,14 @@ def collate_fn(batch):
     imgs = torch.stack([img[0] for img in batch])
 
     return imgs
+
+def count_parameters(model: torch.nn.Module) -> int:
+    """Counts the number of parameters in a model.
+
+    Args:
+        model (torch.nn.Module): The model to count parameters for.
+
+    Returns:
+        int: The number of parameters in the model.
+    """
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)

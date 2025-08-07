@@ -1,0 +1,7 @@
+__pycache__/
+.aim
+logs/**
+wandb/**
+experiments/**
+data/**
+*/__pycache__/*

@@ -4,6 +4,8 @@ import argparse
 import yaml
 from aim import Run
 
+import wandb
+
 from dataloader import load_dataloader
 from trainer import Trainer
 from transformer import VQGANTransformer
@@ -16,38 +18,48 @@ def main(args, config):
     transformer = VQGANTransformer(
         vqgan, **config["architecture"]["transformer"], device=args.device
     )
-    dataloader = load_dataloader(name=args.dataset_name)
+    dataloader = load_dataloader(name=args.dataset_name, batch_size=args.batch_size)
 
-    run = Run(experiment=args.dataset_name)
-    run["hparams"] = config
+    run = wandb.init(entity="wqlevi", project=args.dataset_name, group="vqgan", config=config)
+    #run["hparams"] = config
 
     trainer = Trainer(
         vqgan,
         transformer,
         run=run,
+        name=args.dataset_name,
         config=config["trainer"],
         seed=args.seed,
         device=args.device,
+        experiment_dir='debug_experiments'
     )
 
-    trainer.train_vqgan(dataloader)
-    trainer.train_transformers(dataloader)
+    trainer.train_vqgan(dataloader, epochs=50)
+    trainer.train_transformers(dataloader, epochs=50)
     trainer.generate_images()
+
+    wandb.finish()
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config_path",
+        "--config-path",
         type=str,
         default="configs/default.yml",
         help="path to config file",
     )
     parser.add_argument(
-        "--dataset_name",
+        "--batch-size",
+        type=int,
+        default=16,
+        help="Batch size for training",
+    )
+    parser.add_argument(
+        "--dataset-name",
         type=str,
-        choices=["mnist", "cifar", "custom"],
+        choices=["mnist", "cifar", "custom", "moco"],
         default="mnist",
         help="Dataset for the model",
     )
@@ -59,6 +71,12 @@ if __name__ == "__main__":
         help="Device to train the model on",
     )
     parser.add_argument(
+        "--device-id",
+        type=int,
+        default=0,
+        help="Device ID to use for training (if using multiple GPUs)",
+    )
+    parser.add_argument(
         "--seed",
         type=str,
         default=42,
@@ -67,7 +85,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    args = parser.parse_args()
+    args.device = args.device + ":" + str(args.device_id) if args.device == "cuda" else "" # completion on specific device
+
+
     with open(args.config_path) as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 

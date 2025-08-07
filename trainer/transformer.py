@@ -4,14 +4,16 @@ import torchvision
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from aim import Run, Image
+from wandb import Image
+
+from utils import count_parameters
 
 
 class TransformerTrainer:
     def __init__(
         self,
         model: nn.Module,
-        run: Run,
+        run,
         experiment_dir: str = "experiments",
         device: str = "cuda",
         learning_rate: float = 4.5e-06,
@@ -20,6 +22,7 @@ class TransformerTrainer:
     ):
         self.run = run
         self.experiment_dir = experiment_dir
+        self.global_step = 0
 
         self.model = model
         self.device = device
@@ -69,9 +72,10 @@ class TransformerTrainer:
         return optimizer
 
     def train(self, dataloader: torch.utils.data.DataLoader, epochs: int):
+        print(f"Training Transformer with {count_parameters(self.model)/(1024**2)} M parameters")
         for epoch in range(epochs):
-
             for index, imgs in enumerate(dataloader):
+                self.global_step += 1
                 self.optim.zero_grad()
                 imgs = imgs.to(device=self.device)
                 logits, targets = self.model(imgs)
@@ -81,11 +85,11 @@ class TransformerTrainer:
                 loss.backward()
                 self.optim.step()
 
-                self.run.track(
+                self.run.log(
+                    {"Cross Entropy Loss":
                     loss,
-                    name="Cross Entropy Loss",
-                    step=index,
-                    context={"stage": "transformer"},
+                    },
+                    step=self.global_step,
                 )
 
                 if index % 10 == 0:
@@ -95,17 +99,21 @@ class TransformerTrainer:
 
                     _, sampled_imgs = self.model.log_images(imgs[0][None])
 
-                    self.run.track(
-                        Image(
-                            torchvision.utils.make_grid(sampled_imgs)
-                            .mul(255)
-                            .add_(0.5)
-                            .clamp_(0, 255)
+                    self.run.log(
+                        {
+                            "Transformer Images":
+                            Image(
+                            torchvision.utils.make_grid(sampled_imgs, normalize=True)
                             .permute(1, 2, 0)
-                            .to("cpu", torch.uint8)
-                            .numpy()
+                            .cpu()
+                            #.mul(255)
+                            #.add_(0.5)
+                            #.clamp_(0, 255)
+                            #.permute(1, 2, 0)
+                            #.to("cpu", torch.uint8)
+                            .numpy(), 
+                            caption= "Transformer Images",
                         ),
-                        name="Transformer Images",
-                        step=index,
-                        context={"stage": "transformer"},
+                        },
+                        step=self.global_step,
                     )

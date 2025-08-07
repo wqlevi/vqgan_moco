@@ -4,6 +4,7 @@ https://github.com/dome272/VQGAN-pytorch/blob/main/training_vqgan.py
 
 # Importing Libraries
 import os
+import ipdb
 
 import imageio
 import lpips
@@ -11,8 +12,11 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torchvision
-from aim import Image, Run
-from utils import weights_init
+#from aim import Image, Run
+
+from wandb import Image
+
+from utils import weights_init, count_parameters
 from vqgan import Discriminator
 
 
@@ -22,7 +26,7 @@ class VQGANTrainer:
     def __init__(
         self,
         model: torch.nn.Module,
-        run: Run,
+        run,
         # Training parameters
         device: str or torch.device = "cuda",
         learning_rate: float = 2.25e-05,
@@ -124,6 +128,7 @@ class VQGANTrainer:
             self.perceptual_loss_factor * perceptual_loss
             + self.rec_loss_factor * rec_loss
         )
+
         perceptual_rec_loss = perceptual_rec_loss.mean()
 
         """
@@ -149,18 +154,17 @@ class VQGANTrainer:
         # ======================================================================================================================
         # Tracking metrics
 
-        self.run.track(
-            perceptual_rec_loss,
-            name="Perceptual & Reconstruction loss",
+        self.run.log(
+            {"Perceptual & Reconstruction loss":perceptual_rec_loss.item(),
+            },
             step=self.global_step,
-            context={"stage": "vqgan"},
         )
 
-        self.run.track(
-            vq_loss, name="VQ Loss", step=self.global_step, context={"stage": "vqgan"}
+        self.run.log(
+            {"VQ loss":vq_loss.item()}, step=self.global_step
         )
-        self.run.track(
-            gan_loss, name="GAN Loss", step=self.global_step, context={"stage": "vqgan"}
+        self.run.log(
+            {"GAN loss":gan_loss}, step=self.global_step
         )
 
         # =======================================================================================================================
@@ -191,6 +195,7 @@ class VQGANTrainer:
             epochs (int, optional): number of epochs to train for. Defaults to 100.
         """
 
+        print(f"Training VQGAN with {count_parameters(self.vqgan)/(1024**2)} M parameters")
         for epoch in range(epochs):
             for index, imgs in enumerate(dataloader):
 
@@ -235,31 +240,35 @@ class VQGANTrainer:
                                 .numpy()
                             )
 
+                            # image norm before logging.
                             gif_img = (gif_img - gif_img.min()) * (
                                 255 / (gif_img.max() - gif_img.min())
                             )
                             gif_img = gif_img.astype(np.uint8)
 
-                            self.run.track(
-                                Image(
-                                    torchvision.utils.make_grid(
-                                        torch.cat(
-                                            (
-                                                imgs,
-                                                decoded_images,
+                            self.run.log(
+                                {
+                                    "VQGAN Recon":
+                                    Image(
+                                        torchvision.utils.make_grid(
+                                            torch.cat(
+                                                (
+                                                    imgs,
+                                                    decoded_images,
+                                                ),
                                             ),
-                                        )
-                                    ).mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
-                                ),
-                                name="VQGAN Reconstruction",
-                                step=self.global_step,
-                                context={"stage": "vqgan"},
+                                            normalize=True,
+                                        ).permute(1,2,0).cpu().numpy(),
+                                        caption= "VQGAN Reconstrucrtion",
+                                    ),
+                                },
+                                    step=self.global_step,
                             )
 
                             self.gif_images.append(gif_img)
 
                         imageio.mimsave(
-                            os.path.join(self.expriment_save_dir, "reconstruction.gif"),
+                            os.path.join(self.expriment_save_dir, "vqgan-reconstruction.gif"),
                             self.gif_images,
                             fps=5,
                         )
