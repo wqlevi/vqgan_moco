@@ -2,7 +2,7 @@
 import argparse
 
 import yaml
-from aim import Run
+#from aim import Run
 
 import wandb
 
@@ -18,7 +18,8 @@ def main(args, config):
     transformer = VQGANTransformer(
         vqgan, **config["architecture"]["transformer"], device=args.device
     )
-    dataloader = load_dataloader(name=args.dataset_name, batch_size=args.batch_size)
+    dataloader = load_dataloader(name=args.dataset_name, batch_size=args.mini_batch_size)
+    update_every = args.batch_size // args.mini_batch_size
 
     run = wandb.init(entity="wqlevi", project=args.dataset_name, group="vqgan", config=config)
     #run["hparams"] = config
@@ -34,8 +35,8 @@ def main(args, config):
         experiment_dir='debug_experiments'
     )
 
-    trainer.train_vqgan(dataloader, epochs=50)
-    trainer.train_transformers(dataloader, epochs=50)
+    trainer.train_vqgan(dataloader, epochs=50, update_every = update_every)
+    trainer.train_transformers(dataloader, epochs=50, update_every = update_every)
     trainer.generate_images()
 
     wandb.finish()
@@ -53,8 +54,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=16,
+        default=128,
         help="Batch size for training",
+    )
+    parser.add_argument(
+        "--mini-batch-size",
+        type=int,
+        default=8,
+        help="Mini batch size for training",
     )
     parser.add_argument(
         "--dataset-name",

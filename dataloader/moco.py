@@ -9,10 +9,10 @@ import pandas as pd
 import os
 from PIL import Image
 
-import jax.numpy as jnp
+#import jax.numpy as jnp
 from torch.utils import data
 from torch import Tensor
-from jax.tree_util import tree_map
+#from jax.tree_util import tree_map
 from torchvision.io import read_image
 from torchvision import transforms
 import torchvision.transforms.functional as TF
@@ -29,7 +29,8 @@ class MoCo(data.Dataset):
                 transforms.Resize((image_size, image_size)),
                 transforms.Grayscale(num_output_channels=1),
                 transforms.ToTensor(),
-                transforms.Normalize((13.1823,), (21.1146,)),
+                #transforms.Normalize((13.1823,), (21.1146,)),
+                transforms.Lambda(lambda x: (x - x.min())/ (x.max() - x.min())),  # Normalize to [0, 1]
             ])
     def __len__(self):
         return len(self.files)
@@ -47,8 +48,8 @@ def load_moco(
 ):
     dataloader = data.DataLoader(
         MoCo(
-            img_dir="/mnt/qdata/share/rawangq1/ukbdata_70k/abdominal_MRI/2d/0/sim/0",
-            csv_file="../SSL_veronika/files_no_bg.csv",
+            img_dir="/workspace/working_buffer/0/sim/0",
+            csv_file="./files_no_bg.csv",
             image_size=image_size
         ),
         batch_size=batch_size,

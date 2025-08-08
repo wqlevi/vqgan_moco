@@ -40,7 +40,7 @@ class Trainer:
         print(f"[INFO] Results will be saved in {experiment_dir}")
         self.experiment_dir = experiment_dir
 
-    def train_vqgan(self, dataloader: torch.utils.data.DataLoader, epochs: int = 1):
+    def train_vqgan(self, dataloader: torch.utils.data.DataLoader, epochs: int = 1, update_every: int = 1):
 
         print(f"[INFO] Training VQGAN on {self.device} for {epochs} epoch(s).")
 
@@ -52,6 +52,7 @@ class Trainer:
             device=self.device,
             experiment_dir=self.experiment_dir,
             **self.config["vqgan"],
+            update_every=update_every,
         )
 
         self.vqgan_trainer.train(
@@ -65,7 +66,7 @@ class Trainer:
         )
 
     def train_transformers(
-        self, dataloader: torch.utils.data.DataLoader, epochs: int = 1
+        self, dataloader: torch.utils.data.DataLoader, epochs: int = 1, update_every: int = 1
     ):
 
         print(f"[INFO] Training Transformer on {self.device} for {epochs} epoch(s).")
@@ -79,6 +80,7 @@ class Trainer:
             device=self.device,
             experiment_dir=self.experiment_dir,
             **self.config["transformer"],
+            update_every=update_every,
         )
 
         self.transformer_trainer.train(dataloader=dataloader, epochs=epochs)
